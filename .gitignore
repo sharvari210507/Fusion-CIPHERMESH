@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+data/*.parquet
+data/*.npz
+data/*.save
+results/*.json
+results/*.csv
+models/*.npz
+models/*.pkl
+models/*.json
+.streamlit/

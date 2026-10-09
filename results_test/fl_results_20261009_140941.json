@@ -1,0 +1,114 @@
+{
+  "n_rounds": 2,
+  "clip_norm": 1.0,
+  "noise_multiplier": 0.0,
+  "participating_banks": [
+    0,
+    1
+  ],
+  "round_history": [
+    {
+      "round": 1,
+      "local_results": [
+        {
+          "bank_id": 0,
+          "train_metrics": {
+            "precision": 0.0013745704467353953,
+            "recall": 0.4,
+            "f1": 0.0027397260273972603,
+            "pr_auc": 0.7369856160100062
+          },
+          "val_metrics": {
+            "precision": 0.005934718100890208,
+            "recall": 1.0,
+            "f1": 0.011799410029498525,
+            "pr_auc": 0.9305555555555555
+          },
+          "n_samples": 8000
+        },
+        {
+          "bank_id": 1,
+          "train_metrics": {
+            "precision": 0.002831858407079646,
+            "recall": 0.8,
+            "f1": 0.005643738977072311,
+            "pr_auc": 0.7203240969816922
+          },
+          "val_metrics": {
+            "precision": 0.001440922190201729,
+            "recall": 1.0,
+            "f1": 0.0028776978417266188,
+            "pr_auc": 0.8492338111715274
+          },
+          "n_samples": 8094
+        }
+      ],
+      "global_metrics": {
+        "precision": 0.0012091898428053204,
+        "recall": 0.13333333333333333,
+        "f1": 0.002396644697423607,
+        "pr_auc": 0.5092219885851608,
+        "n_samples": 10002
+      },
+      "aggregated_weight_norm": {
+        "coef": 0.6202383307561883,
+        "intercept": 0.5134666967618544
+      }
+    },
+    {
+      "round": 2,
+      "local_results": [
+        {
+          "bank_id": 0,
+          "train_metrics": {
+            "precision": 0.0014727540500736377,
+            "recall": 0.8,
+            "f1": 0.002940095553105476,
+            "pr_auc": 0.749068167604753
+          },
+          "val_metrics": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "pr_auc": 0.37287287287287285
+          },
+          "n_samples": 8000
+        },
+        {
+          "bank_id": 1,
+          "train_metrics": {
+            "precision": 0.002716161158895428,
+            "recall": 0.6,
+            "f1": 0.005407841369986481,
+            "pr_auc": 0.7332384957941613
+          },
+          "val_metrics": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "pr_auc": 0.7014335145823035
+          },
+          "n_samples": 8094
+        }
+      ],
+      "global_metrics": {
+        "precision": 0.0016427104722792608,
+        "recall": 0.26666666666666666,
+        "f1": 0.0032653061224489797,
+        "pr_auc": 0.48547778779079476,
+        "n_samples": 10002
+      },
+      "aggregated_weight_norm": {
+        "coef": 0.7712617698563816,
+        "intercept": 0.4319710806032272
+      }
+    }
+  ],
+  "final_global_metrics": {
+    "precision": 0.0016427104722792608,
+    "recall": 0.26666666666666666,
+    "f1": 0.0032653061224489797,
+    "pr_auc": 0.48547778779079476,
+    "n_samples": 10002
+  }
+}
