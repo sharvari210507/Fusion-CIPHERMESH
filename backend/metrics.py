@@ -11,7 +11,8 @@ def pr_auc(y, s):
 
 def recall_at_fpr(y, s, fpr=0.01):
     y = np.asarray(y); s = np.asarray(s)
-    order = np.argsort(s); ys = y[order]
+    order = np.argsort(-s)  # descending: highest scores first
+    ys = y[order]
     nneg = max(1, (y == 0).sum()); npos = max(1, (y == 1).sum())
     fprs = np.cumsum(1 - ys) / nneg
     rec = np.cumsum(ys) / npos

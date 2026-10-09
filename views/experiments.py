@@ -24,8 +24,12 @@ def page():
     out = json.loads(p.read_text())
     st.caption(f"Config: {out.get('config')}")
     E = out.get("E", {})
+    NAMES = {"E1_local": "E1 — Local-only baselines", "E2_fedsize": "E2 — Federation size (1-5 banks)",
+             "E3_pooled_reference": "E3 — Pooled reference (requires raw-data sharing)",
+             "E4_coldstart": "E4 — Cold-start bank", "E5_noniid": "E5 — Bank Divergence Radar (local vs federated per bank)",
+             "E6_noise": "E6 — Update protection: privacy vs accuracy"}
     for k, v in E.items():
-        st.subheader(k)
+        st.subheader(NAMES.get(k, k))
         st.json(v)
         st.caption(_caption(k, v))
 

@@ -1,9 +1,13 @@
 """Bank client, FedAvg, run loop. Trust boundary: clients hold DataFrames;
 aggregator sees only UpdateMessage (numeric array + metadata)."""
 from dataclasses import dataclass
+import warnings
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import SGDClassifier
+
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 from . import features as F
 from .privacy import clip_update, add_noise

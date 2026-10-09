@@ -61,6 +61,17 @@ def test_scoring_validation():
     raise AssertionError("bad input not rejected")
 
 
+def test_recall_at_fpr_known():
+    from backend.metrics import recall_at_fpr
+    # perfect ranking: all fraud scored above all legit -> recall 1.0 at 1% FPR
+    y = np.array([1] * 10 + [0] * 1000)
+    s = np.array([0.9] * 10 + [0.1] * 1000)
+    assert recall_at_fpr(y, s, 0.01) == 1.0
+    # worst ranking: fraud at bottom -> recall 0.0
+    s2 = np.array([0.1] * 10 + [0.9] * 1000)
+    assert recall_at_fpr(y, s2, 0.01) == 0.0
+
+
 def test_lockout_and_roles(tmp_path, monkeypatch):
     import backend.database as db
     import backend.config as C
