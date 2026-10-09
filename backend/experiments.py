@@ -65,6 +65,7 @@ def run_suite(jid, cfg, stop):
     rounds = cfg.get("rounds", 5); epochs = cfg.get("local_epochs", 1)
     out = {"config": cfg, "E": {}}
     mode = "raw"
+    fed_clip = cfg.get("fed_clip", 1.0)
     # E1 local only: same total epochs as the federated run. Evaluated on the
     # global test split AND on the bank's own test partition. Local models saved.
     e1 = {}
@@ -94,7 +95,7 @@ def run_suite(jid, cfg, stop):
             rng = np.random.RandomState(s)
             order = list(rng.permutation(5))[:k]
             w = _quick_train(order, dict(feature_mode=mode, rounds=rounds,
-                                         local_epochs=epochs, clip_norm=1.0,
+                                         local_epochs=epochs, clip_norm=fed_clip,
                                          noise_multiplier=0.0, sampling_frac=1.0), s, stop)
             m, _, _ = _eval(w, mode)
             ms.append(m["pr_auc"])
@@ -168,7 +169,7 @@ def run_suite(jid, cfg, stop):
             ml, _, _ = _eval(wl, mode, bank=bt)
             loc.append(ml["pr_auc"])
         w5 = _quick_train([0, 1, 2, 3, 4], dict(feature_mode=mode, rounds=rounds,
-                                                local_epochs=epochs, clip_norm=1.0,
+                                                local_epochs=epochs, clip_norm=fed_clip,
                                                 noise_multiplier=0.0, sampling_frac=1.0), seeds[0], stop)
         mg, _, _ = _eval(w5, mode, bank=bt)
         e5[str(bt)] = {"global_pr_auc": float(mg["pr_auc"]),
@@ -188,12 +189,16 @@ def run_suite(jid, cfg, stop):
         ms = []
         for s in seeds:
             w = _quick_train([0, 1, 2, 3, 4], dict(feature_mode=mode, rounds=rounds,
-                                                   local_epochs=epochs, clip_norm=clip_used,
+                                                   local_epochs=epochs, clip_norm=fed_clip,
                                                    noise_multiplier=nm), s, stop)
             m, _, _ = _eval(w, mode)
             ms.append(m["pr_auc"])
         e6[str(nm)] = float(np.mean(ms))
-    out["E"]["E6_noise"] = {"clip_norm_measured": clip_used, "sweep": e6}
+    out["E"]["E6_noise"] = {"clip_norm_measured": clip_used,
+                            "clip_norm_used": fed_clip, "sweep": e6,
+                            "note": ("Sweep uses the stabilizing clip (fed_clip); the raw "
+                                     "median unclipped update norm is recorded for transparency. "
+                                     "Noise is not a formal DP guarantee.")}
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     (RESULTS_DIR / "experiments.json").write_text(json.dumps(out, indent=1))
     db.set_job(jid, result_path=str(RESULTS_DIR / "experiments.json"))
