@@ -32,7 +32,8 @@ with st.sidebar:
         st.rerun()
 
 from views import (overview, data_explorer, control_room, experiments,
-                   privacy_audit, score_transaction, threat_model, admin)
+                   privacy_audit, score_transaction, threat_model, admin,
+                   cross_bank_alerts)
 
 pages = {
     "Monitor": [st.Page(overview.page, title="Overview", url_path="overview"),
@@ -41,7 +42,8 @@ pages = {
                    st.Page(experiments.page, title="Experiments", url_path="experiments")],
     "Security": [st.Page(privacy_audit.page, title="Privacy Audit", url_path="privacy-audit"),
                  st.Page(threat_model.page, title="Threat Model", url_path="threat-model")],
-    "Tools": [st.Page(score_transaction.page, title="Score Transaction", url_path="score-transaction")],
+    "Tools": [st.Page(score_transaction.page, title="Score Transaction", url_path="score-transaction"),
+              st.Page(cross_bank_alerts.page, title="Cross-Bank Alerts", url_path="cross-bank-alerts")],
 }
 if user.get("role") == "admin":
     pages["Administration"] = [st.Page(admin.page, title="Administration", url_path="administration")]

@@ -84,3 +84,28 @@ def test_token_deterministic_and_salted(adb):
     assert A.entity_token("C123") != A.entity_token("C124")
     with pytest.raises(ValueError):
         A.entity_token("")
+
+
+def test_end_to_end_two_hour_replay(tmp_path, monkeypatch):
+    """End-to-end replay on real records with isolated signal tables."""
+    import backend.database as db
+    import backend.config as C
+    p = tmp_path / "replay.db"
+    monkeypatch.setattr(C, "DB_PATH", p)
+    monkeypatch.setattr(db, "DB_PATH", p)
+    db.init_db()
+    db.set_setting("active_model", 3)
+    from backend import alerts as A
+    trail = A.replay_two_hour_demo({"name": "t", "role": "admin"}, delay_hours=2.0)
+    assert trail["flagged"] is True
+    assert trail["match_hits"] == 1
+    assert trail["simulated_elapsed_hours"] == 2.0
+    assert trail["real_processing_latency_ms"] > 0
+    assert "not a guilt" in trail["match"]["reason"] or "investigation" in trail["decision"]
+
+
+def test_replay_requires_admin(adb):
+    from backend import alerts as A
+    import pytest as _p
+    with _p.raises(PermissionError):
+        A.replay_two_hour_demo({"name": "t", "role": "analyst"})

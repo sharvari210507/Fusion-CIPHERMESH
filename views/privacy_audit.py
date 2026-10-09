@@ -23,7 +23,11 @@ def page():
         m0 = msgs[0]
         st.write("Message inspector (one real stored message): fields bank_id, round, "
                  f"n_samples={m0['n_samples']}, update_bytes={m0['update_bytes']}, "
+                 f"payload_type={m0.get('payload_type', 'unknown')}, "
                  f"norm_before={m0['norm_before_clip']:.4f}, norm_after={m0['norm_after_clip']:.4f}, "
-                 f"noise_std={m0['noise_std']}. No DataFrame payload is accepted by the aggregator.")
+                 f"noise_std={m0['noise_std']}. rows_transmitted is 0 only together with "
+                 "payload_type evidence that the stored payload was a validated numeric "
+                 "update array (which has no row field); unknown payloads would stay NULL, "
+                 "never silent zero. Raw DataFrames are rejected before insert.")
     st.warning("Noise protection is not a formal differential-privacy guarantee: no privacy accounting is implemented. "
                "Federated averaging alone does not prevent model-update leakage; secure aggregation is future work.")

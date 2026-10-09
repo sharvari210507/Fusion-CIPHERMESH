@@ -12,9 +12,10 @@ import views.privacy_audit as privacy_audit
 import views.score_transaction as score_transaction
 import views.threat_model as threat_model
 import views.admin as admin
+import views.cross_bank_alerts as cross_bank_alerts
 
 PAGES = [overview, data_explorer, control_room, experiments,
-         privacy_audit, score_transaction, threat_model, admin]
+         privacy_audit, score_transaction, threat_model, admin, cross_bank_alerts]
 
 
 def test_all_pages_zero_arg_callable():
