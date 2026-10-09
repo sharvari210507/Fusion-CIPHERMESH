@@ -123,9 +123,30 @@ def get_page_user():
     The login gate in app.py stores the authenticated user dict in
     st.session_state["_u"]. Pages retrieve it here so Streamlit can invoke
     them with zero arguments. Never fabricates a user: returns None when
-    unauthenticated.
+    unauthenticated. For local users the role and lockout are re-checked
+    against the database on every call, so demotion or lockout takes effect
+    without requiring re-login.
     """
     u = st.session_state.get("_u")
-    if u is not None:
+    if u is None:
+        u = current_user()
+    if u is None or u.get("google"):
         return u
-    return current_user()
+    try:
+        c = _c(); c.row_factory = sqlite3.Row
+        r = c.execute("SELECT role, locked_until FROM users WHERE username=?",
+                      (u.get("name"),)).fetchone()
+        c.close()
+        if r is None:
+            return None
+        if r["locked_until"]:
+            try:
+                if datetime.fromisoformat(r["locked_until"]) > datetime.now(timezone.utc):
+                    return None
+            except Exception:
+                pass
+        u = {"name": u["name"], "role": admin_checked_role(u["name"], r["role"])}
+        st.session_state["_u"] = u
+        return u
+    except Exception:
+        return u
