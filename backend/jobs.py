@@ -167,6 +167,7 @@ def get_manager():
 
 def _bg_download_and_autostart():
     import traceback
+    from .config import AUTO_START_JOBS
     try:
         if not D.is_cached():
             try:
