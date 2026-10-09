@@ -1,8 +1,7 @@
 """FedGuard entry point: theme, backend start, auth gate, navigation."""
 import streamlit as st
-import numpy as n
 
-st.set_page_config(page_title="FedGuard", layout="wide")
+st.set_page_config(page_title="FedGuard", layout="wide", initial_sidebar_state="expanded")
 from ui.theme import CSS
 st.markdown(CSS, unsafe_allow_html=True)
 from backend.jobs import startup, get_manager
@@ -18,6 +17,12 @@ def _backend():
 _backend()
 user = current_user()
 if user is None:
+    # Signed-out shell: brand-only sidebar, no navigation, no user content.
+    # The auth gate below (st.stop) is what protects every page; this explicit
+    # sidebar render additionally replaces any prior navigation entries.
+    with st.sidebar:
+        st.markdown("## FedGuard")
+        st.caption("Privacy-preserving fraud signal sharing. Please sign in.")
     from views import login
     login.page()
     st.caption("Dataset: flwrlabs/fed-fraud-paysim-banks (CC-BY-4.0). Synthetic data. Prototype only.")
