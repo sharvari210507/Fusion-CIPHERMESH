@@ -1,0 +1,47 @@
+"""FedGuard entry point: theme, backend start, auth gate, navigation."""
+import streamlit as st
+
+st.set_page_config(page_title="FedGuard", layout="wide")
+from ui.theme import CSS
+st.markdown(CSS, unsafe_allow_html=True)
+from backend.jobs import startup, get_manager
+from backend.auth import current_user, logout
+
+
+@st.cache_resource
+def _backend():
+    startup()
+    return get_manager()
+
+
+_backend()
+user = current_user()
+if user is None:
+    from views import login
+    login.page()
+    st.caption("Dataset: flwrlabs/fed-fraud-paysim-banks (CC-BY-4.0). Synthetic data. Prototype only.")
+    st.stop()
+
+st.session_state["_u"] = user
+with st.sidebar:
+    st.write(f"Signed in: {user['name']} ({user['role']})")
+    if st.button("Sign out"):
+        logout()
+        st.rerun()
+
+from views import (overview, data_explorer, control_room, experiments,
+                   privacy_audit, score_transaction, threat_model, admin)
+
+pages = {
+    "Monitor": [st.Page(overview.page, title="Overview"),
+                st.Page(data_explorer.page, title="Data Explorer")],
+    "Federation": [st.Page(control_room.page, title="Control Room"),
+                   st.Page(experiments.page, title="Experiments")],
+    "Security": [st.Page(privacy_audit.page, title="Privacy Audit"),
+                 st.Page(threat_model.page, title="Threat Model")],
+    "Tools": [st.Page(score_transaction.page, title="Score Transaction")],
+}
+if user.get("role") == "admin":
+    pages["Administration"] = [st.Page(admin.page, title="Administration")]
+st.caption("FedGuard prototype. Data: flwrlabs/fed-fraud-paysim-banks (CC-BY-4.0), synthetic. Not production-ready.")
+st.navigation(pages).run()
