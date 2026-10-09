@@ -118,3 +118,10 @@ only one spec MD file existed on Desktop (no `(1)` variant), so no merge was nee
 - Bug found and fixed: `recall_at_fpr` ranked scores ascending; recall@1%FPR values stored for
   jobs 1–2 are wrong (show 0.0). Fixed with a known-answer regression test; job 3+ is correct.
 - Noise is Gaussian on clipped updates with no privacy accounting: no formal DP claim is made.
+
+## Security regression tests (from PR #2)
+
+`tests/test_security_regression.py` (12 tests, synthetic data) covers authentication,
+authorization and trust boundaries of the prototype `src/` pipeline. Findings and control
+limitations are documented in `Docs/research/security-validation.md`. Note: some test
+assertions document prototype limitations rather than production guarantees.
