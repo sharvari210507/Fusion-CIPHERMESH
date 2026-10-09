@@ -104,3 +104,17 @@ Dataset: `flwrlabs/fed-fraud-paysim-banks`, Hugging Face, license CC-BY-4.0. Sam
 Known deviations: (1) Python 3.13 used (3.10–3.12 unavailable); (2) `architecture.txt` (simple
 no-auth/no-DB prototype) is superseded by the Build Specification, which is authoritative;
 only one spec MD file existed on Desktop (no `(1)` variant), so no merge was needed.
+
+## Verified findings (live data, Oct 2026)
+
+- Dataset verified: train 5,726,358 rows, test 636,262 rows; 5 banks (0–4); fraud ~0.129%
+  train and test; `isFlaggedFraud` appears in only 14 rows (all fraud) and is excluded from
+  features; no missing values.
+- Job 1 (5-bank, 5 rounds, no clipping): diverged — PR-AUC ~0.01–0.04. Unclipped FedAvg of
+  updates with L2 norms ~500–1400 diverges on these unscaled features. Kept as an honest record.
+- Default `clip_norm` is therefore 1.0 (measured, not guessed; also the E6 grid baseline).
+- Job 3 (5-bank, 5 rounds, clip 1.0, no noise): PR-AUC 0.747–0.765, recall@1%FPR 0.87–0.92,
+  F1 0.73–0.75 on the held-out test split; 25 update messages, 2,400 bytes, rows_transmitted 0.
+- Bug found and fixed: `recall_at_fpr` ranked scores ascending; recall@1%FPR values stored for
+  jobs 1–2 are wrong (show 0.0). Fixed with a known-answer regression test; job 3+ is correct.
+- Noise is Gaussian on clipped updates with no privacy accounting: no formal DP claim is made.
