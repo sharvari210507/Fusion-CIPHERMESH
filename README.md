@@ -118,3 +118,20 @@ only one spec MD file existed on Desktop (no `(1)` variant), so no merge was nee
 - Bug found and fixed: `recall_at_fpr` ranked scores ascending; recall@1%FPR values stored for
   jobs 1–2 are wrong (show 0.0). Fixed with a known-answer regression test; job 3+ is correct.
 - Noise is Gaussian on clipped updates with no privacy accounting: no formal DP claim is made.
+
+## Experiment evidence (representative 1-seed suite, jobs 4–5, Oct 2026)
+
+- E1 local-only (unclipped single fits): own-partition PR-AUC 0.01–0.25 per bank.
+- E2 federation size (clip 1.0): PR-AUC 0.716 (1 bank) → 0.755 (5 banks).
+- E3 pooled reference (unclipped): PR-AUC 0.085.
+- E4 cold start (bank 0, 5,000 rows / 11 fraud): alone 0.006 → joined 0.737 own-partition.
+- E5 Divergence Radar: federated minus local PR-AUC per bank +0.49 to +0.77, same partition.
+- E6 noise sweep at stabilizing clip 1.0 (measured raw median norm 1070.9 also recorded):
+  PR-AUC 0.755 → 0.706 → 0.600 → 0.428 → 0.002 over multipliers 0–1.0.
+- Honest confound (do not over-claim): the local-only E1/E3 arms train WITHOUT update
+  clipping while the federated arms use clip 1.0, which stabilizes this unscaled data
+  (job 1 diverged unclipped). The federation-vs-local gaps therefore conflate clipping
+  with collaboration. A clip-matched local baseline is the next validation step.
+- Full 3-seed suite (EXP_DEFAULT) not yet run: ~40+ min estimated. Configs, metrics and
+  job statuses persist in results/experiments.json and the jobs table; failed/cancelled
+  jobs are never marked completed.
