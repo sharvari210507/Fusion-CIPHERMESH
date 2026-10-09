@@ -165,25 +165,39 @@ def get_manager():
     return _manager
 
 
+def _bg_download_and_autostart():
+    import traceback
+    try:
+        if not D.is_cached():
+            try:
+                D.download_and_cache()
+            except Exception:
+                traceback.print_exc()
+                return
+        else:
+            try:
+                D.compute_stats()
+            except Exception:
+                pass
+        if AUTO_START_JOBS:
+            jobs = db.list_jobs(limit=100)
+            if not any(j["status"] == "completed" and j["kind"] == "training" for j in jobs):
+                mgr = get_manager()
+                if mgr.current is None and not mgr.queue:
+                    try:
+                        mgr.submit("training", dict(DEFAULT_RUN), {"name": "system", "role": "admin"})
+                    except Exception:
+                        pass
+    except Exception:
+        traceback.print_exc()
+
+
 def startup():
     from .config import AUTO_START_JOBS
     db.init_db()
     for j in db.list_jobs(limit=100):
         if j["status"] == "running":
             db.set_job(j["id"], status="interrupted", finished_at=db.now())
-    if not D.is_cached():
-        try:
-            D.download_and_cache()
-        except Exception:
-            pass
-    else:
-        try:
-            D.compute_stats()
-        except Exception:
-            pass
-    if AUTO_START_JOBS and D.is_cached():
-        jobs = db.list_jobs(limit=100)
-        if not any(j["status"] == "completed" and j["kind"] == "training" for j in jobs):
-            mgr = get_manager()
-            if mgr.current is None and not mgr.queue:
-                mgr.submit("training", dict(DEFAULT_RUN), {"name": "system", "role": "admin"})
+    # Non-blocking: dataset download + autostart run in a daemon thread so the
+    # login page renders instantly even on first boot.
+    threading.Thread(target=_bg_download_and_autostart, daemon=True).start()
