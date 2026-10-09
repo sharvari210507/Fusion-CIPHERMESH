@@ -33,15 +33,15 @@ from views import (overview, data_explorer, control_room, experiments,
                    privacy_audit, score_transaction, threat_model, admin)
 
 pages = {
-    "Monitor": [st.Page(overview.page, title="Overview"),
-                st.Page(data_explorer.page, title="Data Explorer")],
-    "Federation": [st.Page(control_room.page, title="Control Room"),
-                   st.Page(experiments.page, title="Experiments")],
-    "Security": [st.Page(privacy_audit.page, title="Privacy Audit"),
-                 st.Page(threat_model.page, title="Threat Model")],
-    "Tools": [st.Page(score_transaction.page, title="Score Transaction")],
+    "Monitor": [st.Page(overview.page, title="Overview", url_path="overview"),
+                st.Page(data_explorer.page, title="Data Explorer", url_path="data-explorer")],
+    "Federation": [st.Page(control_room.page, title="Control Room", url_path="control-room"),
+                   st.Page(experiments.page, title="Experiments", url_path="experiments")],
+    "Security": [st.Page(privacy_audit.page, title="Privacy Audit", url_path="privacy-audit"),
+                 st.Page(threat_model.page, title="Threat Model", url_path="threat-model")],
+    "Tools": [st.Page(score_transaction.page, title="Score Transaction", url_path="score-transaction")],
 }
 if user.get("role") == "admin":
-    pages["Administration"] = [st.Page(admin.page, title="Administration")]
+    pages["Administration"] = [st.Page(admin.page, title="Administration", url_path="administration")]
 st.caption("FedGuard prototype. Data: flwrlabs/fed-fraud-paysim-banks (CC-BY-4.0), synthetic. Not production-ready.")
 st.navigation(pages).run()
