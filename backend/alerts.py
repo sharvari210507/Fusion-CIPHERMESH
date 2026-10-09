@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import secrets
 import sqlite3
+import numpy as np
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 
@@ -192,3 +193,81 @@ def match(token, receiving_bank, user):
                                "Risk warning for verification, not a guilt finding."),
                     "latency_ms": round(latency_ms, 2)})
     return out
+
+
+def replay_two_hour_demo(user, delay_hours=2.0):
+    """Reproducible event-driven demo (admin only) using REAL dataset records.
+
+    1. Takes a real fraud row from Bank 0's test split whose recipient also
+       appears in Bank 1's test split (verified linkage).
+    2. Scores it with the active federated model; publishes a token-only signal
+       if the detector flags it.
+    3. Replays a real Bank 1 row for the same recipient at +delay_hours
+       (simulated clock: event timestamps, no real waiting).
+    4. Matches before the simulated approval decision; returns the full trail
+       with simulated elapsed time and measured real processing latency.
+    Raw identifiers never enter the signal: only the HMAC token is shared.
+    """
+    from .auth import require_admin
+    require_admin(user)
+    import time
+    import joblib
+    from . import data as D
+    from . import features as F
+    from .config import MODELS_DIR
+    t_start = time.perf_counter()
+    am = db.get_setting("active_model")
+    if not am:
+        raise RuntimeError("No active model. Complete a training run first.")
+    mp = MODELS_DIR / f"global_run_{am}.joblib"
+    if not mp.exists():
+        raise RuntimeError(f"Active model artifact for job {am} is missing.")
+    m = joblib.load(mp)
+    w, mode, thr = m["weights"], m["feature_mode"], m.get("threshold", 0.5)
+    te = D.load_split("test")
+    b0f = te[(te["BankID"] == 0) & (te["isFraud"] == 1)]
+    b1dests = set(te[te["BankID"] == 1]["nameDest"])
+    cand = b0f[b0f["nameDest"].isin(b1dests)].sort_values("step")
+    if len(cand) == 0:
+        raise RuntimeError("No cross-bank recipient linkage found in test data.")
+    src = cand.iloc[0]
+    import pandas as pd
+    row = pd.DataFrame([{"step": int(src["step"]), "type": str(src["type"]),
+                         "amount": float(src["amount"]),
+                         "oldbalanceOrg": float(src["oldbalanceOrg"]),
+                         "newbalanceOrig": float(src["newbalanceOrig"]),
+                         "oldbalanceDest": float(src["oldbalanceDest"]),
+                         "newbalanceDest": float(src["newbalanceDest"])}])
+    xs = F.transform(row, mode).values[0]
+    p_src = float(1 / (1 + np.exp(-(xs @ w[:-1] + w[-1]))))
+    flagged = p_src >= thr
+    trail = {"source_bank": 0, "source_step": int(src["step"]),
+             "source_type": str(src["type"]), "source_amount": float(src["amount"]),
+             "source_isFraud": True, "model_score": round(p_src, 4),
+             "threshold": round(float(thr), 4), "flagged": bool(flagged),
+             "model_job": int(am)}
+    if not flagged:
+        trail["outcome"] = ("Detector did not flag the source event; no signal "
+                            "published. Honest negative reported.")
+        return trail
+    tok = entity_token(str(src["nameDest"]))
+    sid, created = publish(0, "mule_recipient", round(p_src, 4), tok,
+                           f"global_run_{am}", "two_hour_demo_replay", user)
+    trail.update({"signal_id": sid, "dedup_reused": not created})
+    b1rows = te[(te["BankID"] == 1) & (te["nameDest"] == src["nameDest"])]
+    dst = b1rows.sort_values("step").iloc[0]
+    hits = match(tok, 1, user)
+    real_ms = round((time.perf_counter() - t_start) * 1000, 2)
+    trail.update({"dest_bank": 1, "dest_step": int(dst["step"]),
+                  "dest_isFraud": bool(dst["isFraud"]),
+                  "simulated_elapsed_hours": float(delay_hours),
+                  "note": (f"Simulated clock advanced {delay_hours}h; no real waiting. "
+                           "Real end-to-end processing latency measured below."),
+                  "match_hits": len(hits),
+                  "match": hits[0] if hits else None,
+                  "real_processing_latency_ms": real_ms,
+                  "decision": ("REVIEW: unexpired cross-bank signal matched before "
+                               "approval - route to investigation, do not auto-block."
+                               if hits else
+                               "No active signal matched; proceed per bank policy.")})
+    return trail
