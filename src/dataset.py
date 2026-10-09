@@ -4,6 +4,48 @@ from datasets import load_dataset
 import os
 import joblib
 
+# Cache schema version. Bump whenever the cached feature layout changes; caches
+# written by older code are rebuilt instead of silently reused.
+CACHE_SCHEMA_VERSION = 2
+
+
+def expected_feature_names():
+    """The single source of truth lives in src/preprocessing.feature_names():
+    7 numeric columns + one-hot `type` in fixed order (12 total)."""
+    from src.preprocessing import feature_names
+    return feature_names()
+
+
+def _cache_valid(data_dir):
+    """A cache is usable only if its schema version and feature list exactly
+    match the current pipeline. Anything else -> rebuild, never silent reuse."""
+    try:
+        meta_path = os.path.join(data_dir, "metadata.npz")
+        if not os.path.exists(meta_path):
+            return False
+        metadata = np.load(meta_path, allow_pickle=True)
+        if "schema_version" not in metadata.files:
+            return False
+        if int(metadata["schema_version"]) != CACHE_SCHEMA_VERSION:
+            return False
+        if list(metadata["feature_names"]) != expected_feature_names():
+            return False
+        n_banks = int(metadata["n_banks"])
+        for bank_id in range(n_banks):
+            bank_file = os.path.join(data_dir, f"bank_{bank_id}_data.npz")
+            if not os.path.exists(bank_file):
+                return False
+            b = np.load(bank_file, allow_pickle=True)
+            if b["X"].ndim != 2 or b["X"].shape[1] != len(expected_feature_names()):
+                return False
+            if list(b["feature_names"]) != expected_feature_names():
+                return False
+            if not os.path.exists(os.path.join(data_dir, f"bank_{bank_id}_scaler.save")):
+                return False
+        return True
+    except Exception:
+        return False
+
 def load_and_preprocess_data(data_dir="./data", force_download=False):
     """
     Load the federated fraud detection dataset and preprocess it for each bank.
@@ -17,9 +59,9 @@ def load_and_preprocess_data(data_dir="./data", force_download=False):
     """
     os.makedirs(data_dir, exist_ok=True)
 
-    # Check if we already have processed data
-    metadata_path = os.path.join(data_dir, "metadata.npz")
-    if os.path.exists(metadata_path) and not force_download:
+    # Check if we already have processed data with a compatible schema
+    if not force_download and _cache_valid(data_dir):
+        metadata_path = os.path.join(data_dir, "metadata.npz")
         print("Loading preprocessed data from cache...")
         # Load metadata
         metadata = np.load(metadata_path)
@@ -49,6 +91,11 @@ def load_and_preprocess_data(data_dir="./data", force_download=False):
 
         return processed_data
 
+    if os.path.exists(os.path.join(data_dir, "metadata.npz")) and not _cache_valid(data_dir):
+        print("Cached data schema mismatch (stale version or unexpected feature "
+              "columns). Rebuilding cache from the current pipeline schema; "
+              "stale files are overwritten, never silently reused.")
+
     print("Generating simulated dataset based on description...")
     df = generate_simulated_dataset(50000)  # Smaller dataset for testing
 
@@ -59,47 +106,45 @@ def load_and_preprocess_data(data_dir="./data", force_download=False):
     print("Preprocessing data...")
     processed_data = {}
 
-    # Define feature columns (based on PaySim dataset)
-    feature_cols = [col for col in df.columns if col not in ['isFraud', 'nameOrig', 'nameDest', 'BankID']]
-
-    # Handle categorical features if any
-    # For simplicity, we'll assume most features are already numeric
-    # In PaySim, we have: step, type, amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud, BankID
-
-    # Encode transaction type if it exists
-    if 'type' in df.columns:
-        from sklearn.preprocessing import LabelEncoder
-        le = LabelEncoder()
-        df['type_encoded'] = le.fit_transform(df['type'].astype(str))
-        feature_cols = [c if c != 'type' else 'type_encoded' for c in feature_cols]
-        if 'type' in feature_cols:
-            feature_cols.remove('type')
-        feature_cols.append('type_encoded')
+    # Feature layout follows the pipeline schema exactly: numeric columns plus
+    # one-hot `type` in the fixed category order (no duplicate columns).
+    # Column identity comes from the preprocessing schema, not local literals.
+    from src.preprocessing import Preprocessor as _Pre
+    _ref = _Pre()
+    numeric_cols = list(_ref.numeric_cols)
+    type_cats = list(_ref.type_cats)
+    feature_cols = expected_feature_names()
 
     # Select features and target
-    X = df[feature_cols].fillna(0)
     y = df['isFraud']
 
     # Split by BankID
     for bank_id in range(5):
         bank_mask = df['BankID'] == bank_id
-        bank_X = X[bank_mask].values
+        bank_df = df[bank_mask]
         bank_y = y[bank_mask].values
 
-        # Standardize features (zero mean, unit variance)
+        # Standardize numeric features (zero mean, unit variance)
         from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler()
-        bank_X_scaled = scaler.fit_transform(bank_X)
+        num_scaled = scaler.fit_transform(bank_df[numeric_cols].fillna(0).values.astype(float))
+        cats = bank_df["type"].astype(str).values
+        onehot = np.zeros((len(bank_df), len(type_cats)), dtype=float)
+        idx = {c: i for i, c in enumerate(type_cats)}
+        for i, v in enumerate(cats):
+            if v in idx:
+                onehot[i, idx[v]] = 1.0
+        bank_X_scaled = np.hstack([num_scaled, onehot])
 
         processed_data[bank_id] = {
             'X': bank_X_scaled,
             'y': bank_y,
             'scaler': scaler,
             'feature_names': feature_cols,
-            'n_samples': len(bank_X)
+            'n_samples': len(bank_X_scaled)
         }
 
-        print(f"Bank {bank_id}: {len(bank_X)} samples, fraud rate: {bank_y.mean():.4f}")
+        print(f"Bank {bank_id}: {len(bank_X_scaled)} samples, fraud rate: {bank_y.mean():.4f}")
 
     # Cache the processed data
     print("Caching processed data...")
@@ -116,11 +161,12 @@ def load_and_preprocess_data(data_dir="./data", force_download=False):
         scaler_file = os.path.join(data_dir, f"bank_{bank_id}_scaler.save")
         joblib.dump(bank_data['scaler'], scaler_file)
 
-    # Save metadata
+    # Save metadata (schema version + exact feature list for validation)
     metadata_file = os.path.join(data_dir, "metadata.npz")
     metadata = {
         'n_banks': 5,
-        'feature_names': processed_data[0]['feature_names']
+        'feature_names': processed_data[0]['feature_names'],
+        'schema_version': CACHE_SCHEMA_VERSION,
     }
     np.savez(metadata_file, **metadata)
 
