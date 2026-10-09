@@ -17,10 +17,11 @@ leak information without secure aggregation.
 """
 
 
-def page(user=None):
-    import streamlit as st
-    user = user if user is not None else st.session_state.get('_u')
-    st.title("Threat Model")
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
+    from ui.theme import banner
+    st.markdown(banner("Threat Model", "What is and is not protected."), unsafe_allow_html=True)
     st.write("Purpose: state what is and is not protected.")
     strip()
     st.write(BODY)

@@ -3,10 +3,11 @@ from backend import database as db
 from views.overview import strip
 
 
-def page(user=None):
-    import streamlit as st
-    user = user if user is not None else st.session_state.get('_u')
-    st.title("Privacy Audit")
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
+    from ui.theme import banner
+    st.markdown(banner("Privacy Audit", "Evidence of what was exchanged. Only numeric updates cross the trust boundary."), unsafe_allow_html=True)
     st.write("Purpose: evidence of what was exchanged. Only numeric updates cross the trust boundary.")
     strip()
     jobs = db.list_jobs(20)

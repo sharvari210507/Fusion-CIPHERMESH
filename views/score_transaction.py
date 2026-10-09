@@ -5,10 +5,11 @@ from backend.config import TYPES
 from views.overview import strip
 
 
-def page(user=None):
-    import streamlit as st
-    user = user if user is not None else st.session_state.get('_u')
-    st.title("Score Transaction")
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
+    from ui.theme import banner
+    st.markdown(banner("Score Transaction", "Score one transaction with the active federated model."), unsafe_allow_html=True)
     st.write("Purpose: score one transaction with the active federated model.")
     strip()
     jid = db.get_setting("active_model")

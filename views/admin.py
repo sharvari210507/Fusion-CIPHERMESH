@@ -4,14 +4,15 @@ from backend.auth import require_admin
 from views.overview import strip
 
 
-def page(user=None):
-    import streamlit as st
-    user = user if user is not None else st.session_state.get('_u')
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
     try:
         require_admin(user)
     except PermissionError:
         st.error("Admin role required."); return
-    st.title("Administration")
+    from ui.theme import banner
+    st.markdown(banner("Administration", "Users, roles, audit records and job history. Admin role required."), unsafe_allow_html=True)
     strip()
     st.subheader("Users")
     st.dataframe(db.query("SELECT id,username,provider,role,failed_attempts,locked_until FROM users"))

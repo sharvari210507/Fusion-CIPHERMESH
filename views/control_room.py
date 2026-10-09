@@ -6,10 +6,11 @@ from backend.config import DEFAULT_RUN
 from views.overview import strip
 
 
-def page(user=None):
-    import streamlit as st
-    user = user if user is not None else st.session_state.get('_u')
-    st.title("Control Room")
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
+    from ui.theme import banner
+    st.markdown(banner("Control Room", "Configure, start and follow federated training. Training actions require admin role."), unsafe_allow_html=True)
     st.write("Purpose: configure, start and follow federated training. Admin only for actions.")
     strip()
     admin = user and user.get("role") == "admin"

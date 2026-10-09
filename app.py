@@ -24,6 +24,8 @@ if user is None:
 
 st.session_state["_u"] = user
 with st.sidebar:
+    st.markdown("## FedGuard")
+    st.caption("Privacy-preserving fraud signal sharing. Synthetic data prototype.")
     st.write(f"Signed in: {user['name']} ({user['role']})")
     if st.button("Sign out"):
         logout()

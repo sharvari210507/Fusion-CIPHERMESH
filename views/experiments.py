@@ -7,10 +7,11 @@ from backend.config import RESULTS_DIR, EXP_DEFAULT
 from views.overview import strip
 
 
-def page(user=None):
-    import streamlit as st
-    user = user if user is not None else st.session_state.get('_u')
-    st.title("Experiments")
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
+    from ui.theme import banner
+    st.markdown(banner("Experiments", "E1-E6 scenario results with generated captions. Pooled (E3) is a reference requiring raw-data sharing."), unsafe_allow_html=True)
     st.write("Purpose: E1-E6 scenario results with generated captions. Pooled (E3) is a reference requiring raw-data sharing.")
     strip()
     p = RESULTS_DIR / "experiments.json"

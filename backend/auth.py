@@ -110,7 +110,22 @@ def google_configured():
 
 def logout():
     st.session_state.pop("user", None)
+    st.session_state.pop("_u", None)
     try:
         st.logout()
     except Exception:
         pass
+
+
+def get_page_user():
+    """Established session mechanism for page callables.
+
+    The login gate in app.py stores the authenticated user dict in
+    st.session_state["_u"]. Pages retrieve it here so Streamlit can invoke
+    them with zero arguments. Never fabricates a user: returns None when
+    unauthenticated.
+    """
+    u = st.session_state.get("_u")
+    if u is not None:
+        return u
+    return current_user()

@@ -8,8 +8,11 @@ from backend.jobs import get_manager
 from views.overview import strip
 
 
-def page(user):
-    st.title("Data Explorer")
+def page():
+    from backend.auth import get_page_user
+    user = get_page_user()
+    from ui.theme import banner
+    st.markdown(banner("Data Explorer", "Inspect the synthetic dataset distribution per bank. All figures computed from the cached data."), unsafe_allow_html=True)
     st.write("Purpose: inspect the synthetic dataset distribution per bank.")
     strip()
     s = D.get_stats()
