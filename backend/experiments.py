@@ -94,7 +94,7 @@ def run_suite(jid, cfg, stop):
             rng = np.random.RandomState(s)
             order = list(rng.permutation(5))[:k]
             w = _quick_train(order, dict(feature_mode=mode, rounds=rounds,
-                                         local_epochs=epochs, clip_norm=None,
+                                         local_epochs=epochs, clip_norm=1.0,
                                          noise_multiplier=0.0, sampling_frac=1.0), s, stop)
             m, _, _ = _eval(w, mode)
             ms.append(m["pr_auc"])
@@ -130,7 +130,7 @@ def run_suite(jid, cfg, stop):
         full = [x for x in range(5) if x != b]
         # joined: target contributes only its limited rows alongside 4 full banks
         fed_cfg = dict(feature_mode=mode, rounds=rounds, local_epochs=epochs,
-                       clip_norm=None, noise_multiplier=0.0, sampling_frac=1.0)
+                       clip_norm=1.0, noise_multiplier=0.0, sampling_frac=1.0)
         rng = np.random.RandomState(s)
         nfeat = len(F.feature_names(mode)); w = np.zeros(nfeat + 1)
         clients = []
@@ -168,7 +168,7 @@ def run_suite(jid, cfg, stop):
             ml, _, _ = _eval(wl, mode, bank=bt)
             loc.append(ml["pr_auc"])
         w5 = _quick_train([0, 1, 2, 3, 4], dict(feature_mode=mode, rounds=rounds,
-                                                local_epochs=epochs, clip_norm=None,
+                                                local_epochs=epochs, clip_norm=1.0,
                                                 noise_multiplier=0.0, sampling_frac=1.0), seeds[0], stop)
         mg, _, _ = _eval(w5, mode, bank=bt)
         e5[str(bt)] = {"global_pr_auc": float(mg["pr_auc"]),
