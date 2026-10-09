@@ -1,6 +1,14 @@
+.venv/
 venv/
 __pycache__/
 *.pyc
+data/
+models/
+results/
+*.db
+*.log
+.streamlit/secrets.toml
+.ipynb_checkpoints/
 data/*.parquet
 data/*.npz
 data/*.save
@@ -9,9 +17,6 @@ results/*.csv
 models/*.npz
 models/*.pkl
 models/*.json
-.streamlit/
-data/*.db
-data/*.json
-data/.signal_salt
-models/*.joblib
-*.log
+data_mini/
+data_test/
+demo_data/

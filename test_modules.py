@@ -5,12 +5,12 @@ Test script to verify that all modules work correctly.
 
 import sys
 import os
-sys.path.append('src')
+
 
 def test_dataset_module():
     """Test the dataset module with simulated data."""
     print("Testing dataset module...")
-    from dataset import load_and_preprocess_data, get_bank_data
+    from src.dataset import load_and_preprocess_data, get_bank_data
 
     # Force simulated data generation by using a non-existent dataset name
     # This will trigger the fallback to generate_simulated_dataset
@@ -32,8 +32,8 @@ def test_dataset_module():
 def test_local_training_module(data):
     """Test the local training module."""
     print("\nTesting local training module...")
-    from local_training import train_local_model
-    from dataset import get_bank_data
+    from src.local_training import train_local_model
+    from src.dataset import get_bank_data
 
     # Get data for bank 0
     X, y = get_bank_data(0, data)
@@ -61,7 +61,7 @@ def test_local_training_module(data):
 def test_federated_learning_module():
     """Test the federated learning coordinator."""
     print("\nTesting federated learning module...")
-    from federated_learning import FederatedLearningCoordinator
+    from src.federated_learning import FederatedLearningCoordinator
 
     # Create coordinator with test directories
     coordinator = FederatedLearningCoordinator(
