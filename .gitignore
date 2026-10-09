@@ -10,3 +10,8 @@ models/*.npz
 models/*.pkl
 models/*.json
 .streamlit/
+data/*.db
+data/*.json
+data/.signal_salt
+models/*.joblib
+*.log
