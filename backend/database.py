@@ -32,7 +32,17 @@ def init_db():
       detail TEXT, created_at TEXT);
     CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
     """)
-    c.commit(); c.close()
+    c.commit()
+    # Migration: evidence of what each payload actually was. Unknown stays NULL,
+    # never silently zero: only rows whose payload passed aggregator validation
+    # (raw payloads are rejected before insert) are labelled as numeric updates.
+    cols = [r[1] for r in c.execute("PRAGMA table_info(messages)").fetchall()]
+    if "payload_type" not in cols:
+        c.execute("ALTER TABLE messages ADD COLUMN payload_type TEXT")
+        c.execute("UPDATE messages SET payload_type='numeric_update_array:validated'"
+                  " WHERE payload_type IS NULL")
+        c.commit()
+    c.close()
 
 
 def now():
@@ -91,10 +101,27 @@ def round_metrics(jid):
 
 
 def add_message(jid, rnd, msg):
+    """Persist one validated aggregator-bound message.
+
+    The payload is inspected here, not assumed: validate_message rejects raw
+    DataFrames, non-numeric arrays and non-finite values before anything is
+    recorded. rows_transmitted is 0 only with payload_type evidence that the
+    stored payload was a validated numeric update array (which has no row
+    field); anything else is rejected and never stored.
+    """
+    from .federated import validate_message
+    validate_message(msg)
+    import numpy as np
+    u = np.asarray(msg.update)
+    payload_type = f"numeric_update_array:{u.dtype}:shape{list(u.shape)}:validated"
+    raw_rows = 0  # validated numeric arrays carry weight deltas only, no transaction rows
     c = _c()
-    c.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?,?,?)",
-              (jid, rnd, msg.bank_id, msg.n_samples, int(msg.update.nbytes), 0,
-               msg.norm_before_clip, msg.norm_after_clip, msg.noise_std, now()))
+    c.execute("INSERT INTO messages(job_id,round,bank_id,n_samples,update_bytes,"
+              "rows_transmitted,norm_before_clip,norm_after_clip,noise_std,created_at,"
+              "payload_type) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+              (jid, rnd, msg.bank_id, msg.n_samples, int(msg.update.nbytes), raw_rows,
+               msg.norm_before_clip, msg.norm_after_clip, msg.noise_std, now(),
+               payload_type))
     c.commit(); c.close()
 
 

@@ -40,10 +40,20 @@ def _caption(k, v):
             d = v["5"]["mean_pr_auc"] - v["1"]["mean_pr_auc"]
             return f"5-bank federation differs from 1-bank by {d:+.4f} PR-AUC (mean over seeds)."
         if k == "E4_coldstart":
-            d = v["joined_mean"] - v["alone_mean"]
-            return f"Target bank {v['target_bank']}: joining changes PR-AUC by {d:+.4f} on its own test rows."
+            d = v["joined_own_mean"] - v["alone_own_mean"]
+            return (f"Target bank {v['target_bank']} ({v['limited_rows']} rows, "
+                    f"{v['limited_fraud_rows']} fraud): joining changes own-partition PR-AUC "
+                    f"by {d:+.4f}.")
         if k == "E6_noise":
-            return f"Noise sweep PR-AUC from {v['0']:.4f} (no noise) to {v['1.0']:.4f} (multiplier 1.0)."
+            sw = v["sweep"] if isinstance(v, dict) and "sweep" in v else v
+            clip = v.get("clip_norm_measured", "?") if isinstance(v, dict) else "?"
+            return (f"Clip norm measured at {clip}; PR-AUC from {sw['0']:.4f} (no noise) "
+                    f"to {sw['1.0']:.4f} (multiplier 1.0). Noise is not a formal guarantee.")
+        if k == "E5_noniid":
+            ds = [x["delta"] for x in v.values()]
+            return (f"Federated minus local PR-AUC per bank (same partition): "
+                    + ", ".join(f"bank {b}: {x['delta']:+.4f}" for b, x in v.items())
+                    + ". Negative values are reported honestly.")
         return "Values are means over seeds where applicable."
     except Exception:
         return "See table."
