@@ -1,5 +1,6 @@
 """FedGuard entry point: theme, backend start, auth gate, navigation."""
 import streamlit as st
+import numpy as n
 
 st.set_page_config(page_title="FedGuard", layout="wide")
 from ui.theme import CSS
