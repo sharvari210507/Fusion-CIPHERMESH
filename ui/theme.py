@@ -139,6 +139,21 @@ tbody tr:hover td{{background-color:{T['bg_panel']} !important;}}
 .stSpinner div{{border-top-color:{T['accent']} !important;}}
 code{{color:{T['accent3']} !important;background-color:{T['bg_input']} !important;
   overflow-wrap:anywhere;}}
+/* ---- password inputs: native eye hidden (login owns a supported toggle) ---- */
+.stTextInput button[aria-label="Show password"],
+.stTextInput button[aria-label="Hide password"]{{display:none !important;}}
+/* ---- Streamlit chrome fallback: neutral glyph if icon assets are blocked.
+   Sidebar expand control only; button keeps its aria-label and function.
+   (If the icon SVG loads, a second chevron may appear beside it.) ---- */
+[data-testid="stExpandSidebarButton"]{{font-size:0 !important;}}
+[data-testid="stExpandSidebarButton"]::after{{content:"»";font-size:22px;
+  color:#7DD3FC;}}
+/* ---- dashboard density: readable tables, consistent KPIs, calm sections ---- */
+.stDataFrame td,.stDataFrame th,.stTable td,.stTable th{{font-size:14px;
+  padding:6px 10px !important;}}
+div[data-testid="stMetric"] [data-testid="stMetricValue"]{{font-size:26px;}}
+section.main .block-container h2{{margin-top:20px;}}
+div[data-testid="stPlotlyChart"]{{margin:4px 0 12px;}}
 /* ---- motion: loading indicators only (skill UX rule) ---- */
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation-duration:0.01ms !important;
