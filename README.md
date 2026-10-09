@@ -21,6 +21,7 @@ Requires Python 3.10–3.12 per spec. **Deviation:** this laptop only has Python
 available and no compliant interpreter could be installed from a trusted source, so the project
 `.venv` uses Python 3.13. All pinned packages and tests pass on it.
 
+
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -125,3 +126,4 @@ only one spec MD file existed on Desktop (no `(1)` variant), so no merge was nee
 authorization and trust boundaries of the prototype `src/` pipeline. Findings and control
 limitations are documented in `Docs/research/security-validation.md`. Note: some test
 assertions document prototype limitations rather than production guarantees.
+Independent code audit covering evaluation fairness, metric correctness, data leakage, federated privacy, and experiment integrity.
