@@ -131,7 +131,7 @@ def run_suite(jid, cfg, stop):
         full = [x for x in range(5) if x != b]
         # joined: target contributes only its limited rows alongside 4 full banks
         fed_cfg = dict(feature_mode=mode, rounds=rounds, local_epochs=epochs,
-                       clip_norm=1.0, noise_multiplier=0.0, sampling_frac=1.0)
+                       clip_norm=fed_clip, noise_multiplier=0.0, sampling_frac=1.0)
         rng = np.random.RandomState(s)
         nfeat = len(F.feature_names(mode)); w = np.zeros(nfeat + 1)
         clients = []
