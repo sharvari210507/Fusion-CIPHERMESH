@@ -41,6 +41,10 @@ CSS = f"""
 html,body,[class*="st-"],h1,h2,h3,h4,p,div,span,label,button,input,select,table,
 .stMarkdown,.stMetric,.stDataFrame,.stTable,.stCaption,.stAlert {{
   font-family:'Times New Roman',Times,'Liberation Serif',Tinos,serif !important;}}
+/* ---- icon elements keep Streamlit's icon font (ligature spans such as the
+   sidebar collapse control render literal text if overridden) ---- */
+span[data-testid="stIconMaterial"]{{
+  font-family:'Material Symbols Rounded' !important;}}
 /* ---- shell ---- */
 .stApp{{background-color:{T['bg_app']};color:{T['text']};}}
 .block-container{{max-width:{T['max_width']};padding:1rem 2rem 3rem;}}
@@ -139,6 +143,15 @@ tbody tr:hover td{{background-color:{T['bg_panel']} !important;}}
 .stSpinner div{{border-top-color:{T['accent']} !important;}}
 code{{color:{T['accent3']} !important;background-color:{T['bg_input']} !important;
   overflow-wrap:anywhere;}}
+/* ---- password inputs: native eye hidden (login owns a supported toggle) ---- */
+.stTextInput button[aria-label="Show password"],
+.stTextInput button[aria-label="Hide password"]{{display:none !important;}}
+/* ---- dashboard density: readable tables, consistent KPIs, calm sections ---- */
+.stDataFrame td,.stDataFrame th,.stTable td,.stTable th{{font-size:14px;
+  padding:6px 10px !important;}}
+div[data-testid="stMetric"] [data-testid="stMetricValue"]{{font-size:26px;}}
+section.main .block-container h2{{margin-top:20px;}}
+div[data-testid="stPlotlyChart"]{{margin:4px 0 12px;}}
 /* ---- motion: loading indicators only (skill UX rule) ---- */
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation-duration:0.01ms !important;

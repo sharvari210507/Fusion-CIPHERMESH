@@ -1,8 +1,7 @@
 """FedGuard entry point: theme, backend start, auth gate, navigation."""
 import streamlit as st
-import numpy as n
 
-st.set_page_config(page_title="FedGuard", layout="wide")
+st.set_page_config(page_title="FedGuard", layout="wide", initial_sidebar_state="expanded")
 from ui.theme import CSS
 st.markdown(CSS, unsafe_allow_html=True)
 from backend.jobs import startup, get_manager
@@ -18,8 +17,21 @@ def _backend():
 _backend()
 user = current_user()
 if user is None:
+    # Signed-out shell: brand-only sidebar, login-only hidden navigation.
+    # The navigation must be redefined on every signed-out run: calling
+    # st.stop() alone does not send an updated page list, so protected
+    # entries registered while signed in would persist in the sidebar
+    # after logout. A hidden login-only navigation clears them while
+    # keeping the sidebar brand-only. It also ensures direct URLs to
+    # protected pages cannot dispatch when unauthenticated (only the
+    # login page is registered).
     from views import login
-    login.page()
+    pg = st.navigation([st.Page(login.page, title="Sign in", url_path="login")],
+                       position="hidden")
+    with st.sidebar:
+        st.markdown("## FedGuard")
+        st.caption("Privacy-preserving fraud signal sharing. Please sign in.")
+    pg.run()
     st.caption("Dataset: flwrlabs/fed-fraud-paysim-banks (CC-BY-4.0). Synthetic data. Prototype only.")
     st.stop()
 
