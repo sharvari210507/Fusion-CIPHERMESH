@@ -1,4 +1,6 @@
 """Shared status strip + brand sidebar content (static markup only, data from backend)."""
+import json
+
 import streamlit as st
 from ui.theme import banner, badge
 from backend import data as D, database as db
@@ -82,6 +84,127 @@ def resolve_overview_job(limit=50):
             f"scoring model.")
 
 
+def _valid_job_id(jid):
+    try:
+        if isinstance(jid, bool):
+            return None
+        value = int(str(jid).strip())
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return value if value >= 0 else None
+
+
+def load_perbank_metrics(jid):
+    """Load the per-bank test artifact for exactly one resolved job.
+
+    Returns ``(rows, threshold, note)``: ``rows`` is a list of one dict per
+    simulated bank (empty when the artifact is missing or unusable),
+    ``threshold`` is the persisted operating threshold or None, and ``note``
+    is None on success or an explicit caveat naming the job and problem.
+    Reads only ``results/run_{jid}_perbank.json`` (+ ``run_{jid}.json`` for
+    the threshold); never trains, never substitutes another job's file.
+    """
+    from backend.config import RESULTS_DIR
+    clean = _valid_job_id(jid)
+    if clean is None:
+        return [], None, f"Invalid job id {jid!r}; no per-bank metrics to display."
+    perbank_path = RESULTS_DIR / f"run_{clean}_perbank.json"
+    run_path = RESULTS_DIR / f"run_{clean}.json"
+    threshold = None
+    try:
+        run_doc = json.loads(run_path.read_text())
+        thr = run_doc.get("threshold") if isinstance(run_doc, dict) else None
+        if isinstance(thr, bool) or not isinstance(thr, (int, float)):
+            threshold = None
+        elif thr != thr or thr in (float("inf"), float("-inf")):
+            threshold = None
+        else:
+            threshold = float(thr)
+    except (OSError, ValueError):
+        threshold = None
+    if not perbank_path.exists():
+        return [], threshold, (
+            f"Per-bank artifact results/run_{clean}_perbank.json was not found, "
+            f"so no per-bank breakdown is shown for job {clean}.")
+    try:
+        doc = json.loads(perbank_path.read_text())
+    except ValueError:
+        return [], threshold, (
+            f"Per-bank artifact results/run_{clean}_perbank.json is malformed "
+            f"and cannot be displayed for job {clean}.")
+    if not isinstance(doc, dict):
+        return [], threshold, (
+            f"Per-bank artifact results/run_{clean}_perbank.json has an "
+            f"unexpected structure for job {clean}; no per-bank metrics to display.")
+    rows, problems = [], []
+    for bank in range(5):
+        entry = doc.get(str(bank), doc.get(bank))
+        row = {"bank": bank}
+        try:
+            if not isinstance(entry, dict):
+                raise ValueError("entry is not an object")
+            for key in ("pr_auc", "recall_at_1pct_fpr", "precision", "recall", "f1"):
+                value = entry[key]
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise ValueError(f"{key} is not numeric")
+                row[key] = round(float(value), 4)
+            tn, fp, fn, tp = entry["confusion"][0][0], entry["confusion"][0][1], \
+                entry["confusion"][1][0], entry["confusion"][1][1]
+            for name, count in (("tn", tn), ("fp", fp), ("fn", fn), ("tp", tp)):
+                if isinstance(count, bool) or not isinstance(count, int):
+                    raise ValueError(f"{name} is not an integer count")
+                row[name] = count
+            rows.append(row)
+        except (KeyError, TypeError, ValueError, IndexError):
+            problems.append(str(bank))
+    if not rows:
+        return [], threshold, (
+            f"Per-bank artifact results/run_{clean}_perbank.json contains no "
+            f"usable bank entries for job {clean}.")
+    note = None
+    parts = []
+    if problems:
+        parts.append(f"bank(s) {', '.join(problems)} are not shown (entry missing or invalid)")
+    recs = [r["recall_at_1pct_fpr"] for r in rows]
+    if len(recs) == 5 and all(r == 0.0 for r in recs):
+        parts.append("recall@1%FPR reads 0.0 for every bank in this saved artifact "
+                     "(outdated metric implementation; see the run history status)")
+    if threshold is None:
+        parts.append("operating threshold is Not available — the run artifact did not "
+                     "record one, and precision/recall/F1 depend on the threshold")
+    if parts:
+        note = f"Per-bank caveat for job {clean}: " + "; ".join(parts) + "."
+    return rows, threshold, note
+
+
+def _perbank_section(jid):
+    """Compact per-bank test evaluation for the already-resolved job."""
+    st.subheader("Per-bank evaluation (active model)")
+    rows, threshold, note = load_perbank_metrics(jid)
+    if not rows:
+        st.warning(note or f"No per-bank metrics to display for job {jid}.")
+        return
+    st.dataframe([{"bank": r["bank"], "PR-AUC": r["pr_auc"],
+                   "Recall@1%FPR": r["recall_at_1pct_fpr"],
+                   "Precision": r["precision"], "Recall": r["recall"],
+                   "F1": r["f1"], "TN": r["tn"], "FP": r["fp"],
+                   "FN": r["fn"], "TP": r["tp"]} for r in rows],
+                 use_container_width=True)
+    if threshold is None:
+        st.caption("Evaluation threshold: Not available for job "
+                   f"{jid} — precision, recall and F1 depend on the threshold.")
+    else:
+        st.caption(f"Evaluation threshold {threshold:.3f} (persisted with run {jid}; "
+                   f"same threshold as the aggregate F1 above).")
+    if note:
+        st.caption(note)
+    st.caption("Simulated PaySim data — held-out test split, per-bank partitions. "
+               "Banks differ in transaction mix and fraud rates, so per-bank results "
+               "differ; the aggregate above can hide a weak individual bank.")
+    st.caption("Prototype results on synthetic data only: not real-world bank "
+               "performance and not production readiness.")
+
+
 def page():
     st.markdown(banner("Overview",
         "Live status of the federation: data, model, experiments and recent activity."),
@@ -118,6 +241,7 @@ def page():
         else:
             st.caption(f"From completed training job {jid} (fallback) on the held-out test split. "
                        "Accuracy is not reported: with ~0.1% fraud it is meaningless.")
+        _perbank_section(jid)
     elif notice == "none":
         st.info("No completed training run yet. An admin can start one from the Control Room; "
                 "a system default run starts automatically once the dataset is cached.")
