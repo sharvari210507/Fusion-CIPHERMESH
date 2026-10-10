@@ -35,9 +35,20 @@ def page():
 
     @st.fragment(run_every=3)
     def live():
+        from backend import run_status as RS
         jobs = db.list_jobs(10)
         st.write("Run history")
-        st.dataframe(jobs)
+        raw_active = db.get_setting("active_model")
+        try:
+            active_id = int(str(raw_active).strip())
+        except (TypeError, ValueError, AttributeError):
+            active_id = None
+        metrics_by_job = {j["id"]: db.round_metrics(j["id"]) for j in jobs}
+        st.dataframe(RS.annotate_jobs(jobs, metrics_by_job, active_id))
+        st.caption("Run status is derived at display time from each run's saved "
+                   "config and metric provenance; low scores alone never mark a run. "
+                   "Superseded runs remain available for inspection with their reason. "
+                   "The active model is the job the Score page loads.")
         if jobs:
             jid = jobs[0]["id"]
             rm = db.round_metrics(jid)
