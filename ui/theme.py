@@ -41,6 +41,10 @@ CSS = f"""
 html,body,[class*="st-"],h1,h2,h3,h4,p,div,span,label,button,input,select,table,
 .stMarkdown,.stMetric,.stDataFrame,.stTable,.stCaption,.stAlert {{
   font-family:'Times New Roman',Times,'Liberation Serif',Tinos,serif !important;}}
+/* ---- icon elements keep Streamlit's icon font (ligature spans such as the
+   sidebar collapse control render literal text if overridden) ---- */
+span[data-testid="stIconMaterial"]{{
+  font-family:'Material Symbols Rounded' !important;}}
 /* ---- shell ---- */
 .stApp{{background-color:{T['bg_app']};color:{T['text']};}}
 .block-container{{max-width:{T['max_width']};padding:1rem 2rem 3rem;}}
@@ -142,12 +146,6 @@ code{{color:{T['accent3']} !important;background-color:{T['bg_input']} !importan
 /* ---- password inputs: native eye hidden (login owns a supported toggle) ---- */
 .stTextInput button[aria-label="Show password"],
 .stTextInput button[aria-label="Hide password"]{{display:none !important;}}
-/* ---- Streamlit chrome fallback: neutral glyph if icon assets are blocked.
-   Sidebar expand control only; button keeps its aria-label and function.
-   (If the icon SVG loads, a second chevron may appear beside it.) ---- */
-[data-testid="stExpandSidebarButton"]{{font-size:0 !important;}}
-[data-testid="stExpandSidebarButton"]::after{{content:"»";font-size:22px;
-  color:#7DD3FC;}}
 /* ---- dashboard density: readable tables, consistent KPIs, calm sections ---- */
 .stDataFrame td,.stDataFrame th,.stTable td,.stTable th{{font-size:14px;
   padding:6px 10px !important;}}
